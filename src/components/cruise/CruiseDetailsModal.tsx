@@ -125,10 +125,13 @@ export function CruiseDetailsModal() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Starting from</p>
+                  <p className="text-xs text-muted-foreground">Estimated from</p>
                   <p className="text-2xl font-bold text-foreground">
                     {formatCurrency(cruise.price)}
                     <span className="text-sm font-normal text-muted-foreground"> /guest</span>
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Estimated price — confirm the final fare with the cruise line.
                   </p>
                 </div>
                 {/* TODO(api): swap `cruise.bookingUrl` for the real booking deep-link once connected. */}

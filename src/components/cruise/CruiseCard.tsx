@@ -76,7 +76,7 @@ export function CruiseCard({ cruise }: CruiseCardProps) {
 
         <div className="mt-auto flex items-end justify-between pt-2">
           <div>
-            <p className="text-xs text-muted-foreground">Starting from</p>
+            <p className="text-xs text-muted-foreground">Estimated from</p>
             <p className="text-xl font-bold text-foreground">
               {formatCurrency(cruise.price)}
               <span className="text-xs font-normal text-muted-foreground"> /guest</span>

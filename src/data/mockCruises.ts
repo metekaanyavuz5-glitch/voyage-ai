@@ -51,6 +51,10 @@ export const PORT_COORDINATES: Record<string, Coordinates> = {
   Seattle: [-122.3321, 47.6062],
   Vancouver: [-123.1207, 49.2827],
   Singapore: [103.8198, 1.3521],
+  "New York": [-74.006, 40.7128],
+  "Port Canaveral": [-80.6081, 28.4058],
+  Civitavecchia: [11.7962, 42.0942],
+  Sydney: [151.2093, -33.8688],
 };
 
 export const PORT_COUNTRIES: Record<string, string> = {
@@ -60,6 +64,10 @@ export const PORT_COUNTRIES: Record<string, string> = {
   Seattle: "United States",
   Vancouver: "Canada",
   Singapore: "Singapore",
+  "New York": "United States",
+  "Port Canaveral": "United States",
+  Civitavecchia: "Italy",
+  Sydney: "Australia",
 };
 
 interface PortProfile {
@@ -150,6 +158,49 @@ const PORT_PROFILES: PortProfile[] = [
     ],
     anchorDate: "2026-10-10",
   },
+  {
+    port: "New York",
+    destination: "Bermuda",
+    callPorts: ["King's Wharf, Bermuda", "St. George's, Bermuda", "Hamilton, Bermuda"],
+    anchorDate: "2026-10-17",
+  },
+  {
+    port: "Port Canaveral",
+    destination: "Caribbean",
+    callPorts: [
+      "Nassau, Bahamas",
+      "Perfect Day at CocoCay, Bahamas",
+      "Cozumel, Mexico",
+      "Costa Maya, Mexico",
+      "Grand Turk, Turks and Caicos",
+    ],
+    anchorDate: "2026-10-24",
+  },
+  {
+    port: "Civitavecchia",
+    destination: "Mediterranean",
+    callPorts: [
+      "Naples, Italy",
+      "Palermo, Italy",
+      "Barcelona, Spain",
+      "Marseille, France",
+      "Valletta, Malta",
+      "Santorini, Greece",
+    ],
+    anchorDate: "2026-10-31",
+  },
+  {
+    port: "Sydney",
+    destination: "Australia & South Pacific",
+    callPorts: [
+      "Auckland, New Zealand",
+      "Bay of Islands, New Zealand",
+      "Noumea, New Caledonia",
+      "Melbourne, Australia",
+      "Brisbane, Australia",
+    ],
+    anchorDate: "2026-11-07",
+  },
 ];
 
 const SHIPS: Record<CruiseLine, string[]> = {
@@ -160,6 +211,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "Oasis of the Seas",
     "Allure of the Seas",
     "Anthem of the Seas",
+    "Spectrum of the Seas",
+    "Odyssey of the Seas",
   ],
   "MSC Cruises": [
     "MSC Seaside",
@@ -168,6 +221,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "MSC Bellissima",
     "MSC World Europa",
     "MSC Virtuosa",
+    "MSC World America",
+    "MSC Euribia",
   ],
   Carnival: [
     "Carnival Celebration",
@@ -176,6 +231,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "Carnival Panorama",
     "Carnival Horizon",
     "Carnival Mardi Gras",
+    "Carnival Firenze",
+    "Carnival Luminosa",
   ],
   "Norwegian Cruise Line": [
     "Norwegian Prima",
@@ -184,6 +241,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "Norwegian Joy",
     "Norwegian Bliss",
     "Norwegian Escape",
+    "Norwegian Aqua",
+    "Norwegian Gem",
   ],
   "Princess Cruises": [
     "Sun Princess",
@@ -192,6 +251,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "Sky Princess",
     "Regal Princess",
     "Majestic Princess",
+    "Star Princess",
+    "Caribbean Princess",
   ],
   "Celebrity Cruises": [
     "Celebrity Ascent",
@@ -200,6 +261,8 @@ const SHIPS: Record<CruiseLine, string[]> = {
     "Celebrity Edge",
     "Celebrity Silhouette",
     "Celebrity Reflection",
+    "Celebrity Xcel",
+    "Celebrity Constellation",
   ],
 };
 
@@ -310,7 +373,7 @@ function generateCruises(): Cruise[] {
       const seedOffset = portIndex + lineIndex;
 
       const duration = DURATION_PATTERN[(portIndex + lineIndex) % DURATION_PATTERN.length];
-      const ship = SHIPS[cruiseLine][portIndex];
+      const ship = SHIPS[cruiseLine][portIndex % SHIPS[cruiseLine].length];
       const departureDate = addDays(profile.anchorDate, lineIndex * 17 + portIndex * 11);
 
       const nightlyRate = BASE_NIGHTLY_RATE[cruiseLine];

@@ -55,6 +55,11 @@ export const PORT_COORDINATES: Record<string, Coordinates> = {
   "Port Canaveral": [-80.6081, 28.4058],
   Civitavecchia: [11.7962, 42.0942],
   Sydney: [151.2093, -33.8688],
+  "Fort Lauderdale": [-80.1216, 26.0928],
+  "Los Angeles": [-118.2706, 33.7361],
+  Venice: [12.3155, 45.4408],
+  Copenhagen: [12.5683, 55.6761],
+  Honolulu: [-157.8583, 21.3069],
 };
 
 export const PORT_COUNTRIES: Record<string, string> = {
@@ -68,6 +73,11 @@ export const PORT_COUNTRIES: Record<string, string> = {
   "Port Canaveral": "United States",
   Civitavecchia: "Italy",
   Sydney: "Australia",
+  "Fort Lauderdale": "United States",
+  "Los Angeles": "United States",
+  Venice: "Italy",
+  Copenhagen: "Denmark",
+  Honolulu: "United States",
 };
 
 interface PortProfile {
@@ -200,6 +210,60 @@ const PORT_PROFILES: PortProfile[] = [
       "Brisbane, Australia",
     ],
     anchorDate: "2026-11-07",
+  },
+  {
+    port: "Fort Lauderdale",
+    destination: "Caribbean",
+    callPorts: [
+      "San Juan, Puerto Rico",
+      "Charlotte Amalie, St. Thomas",
+      "Philipsburg, St. Maarten",
+      "Basseterre, St. Kitts",
+      "Bridgetown, Barbados",
+      "Oranjestad, Aruba",
+    ],
+    anchorDate: "2026-11-14",
+  },
+  {
+    port: "Los Angeles",
+    destination: "Mexican Riviera",
+    callPorts: [
+      "Cabo San Lucas, Mexico",
+      "Puerto Vallarta, Mexico",
+      "Mazatlán, Mexico",
+      "Ensenada, Mexico",
+    ],
+    anchorDate: "2026-11-21",
+  },
+  {
+    port: "Venice",
+    destination: "Mediterranean",
+    callPorts: [
+      "Dubrovnik, Croatia",
+      "Kotor, Montenegro",
+      "Corfu, Greece",
+      "Santorini, Greece",
+      "Kusadasi, Turkey",
+    ],
+    anchorDate: "2026-11-28",
+  },
+  {
+    port: "Copenhagen",
+    destination: "Northern Europe",
+    callPorts: [
+      "Stockholm, Sweden",
+      "Helsinki, Finland",
+      "Tallinn, Estonia",
+      "Gdansk, Poland",
+      "Warnemünde (Berlin), Germany",
+    ],
+    anchorDate: "2026-12-05",
+  },
+  {
+    port: "Honolulu",
+    destination: "Hawaii",
+    callPorts: ["Kahului, Maui", "Hilo, Hawaii", "Kona, Hawaii", "Nawiliwili, Kauai"],
+    anchorDate: "2026-12-12",
   },
 ];
 

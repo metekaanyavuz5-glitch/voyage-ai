@@ -26,6 +26,8 @@ export const DESTINATIONS = [
   "Southeast Asia",
   "Bermuda",
   "Australia & South Pacific",
+  "Mexican Riviera",
+  "Hawaii",
 ] as const;
 
 export type Destination = (typeof DESTINATIONS)[number];

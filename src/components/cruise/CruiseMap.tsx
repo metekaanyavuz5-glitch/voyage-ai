@@ -2,49 +2,122 @@
 
 import { useEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { MapPinned } from "lucide-react";
-import { CruiseMarker } from "@/components/cruise/CruiseMarker";
-import { PortPopup } from "@/components/cruise/PortPopup";
-import { usePorts } from "@/hooks/useCruises";
+import {
+  AttributionControl,
+  Map as MaplibreMap,
+  Marker,
+  NavigationControl,
+  Popup,
+  type StyleSpecification,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { CruisePin } from "@/components/cruise/CruisePin";
+import { CruisePinPopup } from "@/components/cruise/CruisePinPopup";
+import { useCruises } from "@/hooks/useCruises";
 import { useCruiseStore } from "@/store/useCruiseStore";
-import type { CruisePort } from "@/types/cruise";
+import type { Cruise } from "@/types/cruise";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+/**
+ * Free, key-less raster basemap (CARTO Voyager) — no account or token
+ * required. A raster tile source is a plain grid of PNG images, so it skips
+ * the vector-tile parsing/worker pipeline entirely: far fewer moving parts
+ * than a vector style, and the same familiar, labeled look as Google Maps.
+ * Declared inline (rather than a style.json URL) so the map doesn't depend
+ * on an extra network round-trip to resolve its own style.
+ */
+const MAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    "carto-voyager": {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      ],
+      tileSize: 256,
+      attribution: "© CARTO © OpenStreetMap contributors",
+    },
+  },
+  layers: [
+    {
+      id: "carto-voyager-layer",
+      type: "raster",
+      source: "carto-voyager",
+    },
+  ],
+};
 
-/** Small helper: unmounting a React root during a Mapbox DOM teardown can
+/** Pixel radius cruise pins fan out to when several share the same departure port. */
+const PIN_SPREAD_RADIUS = 16;
+
+/** Small helper: unmounting a React root during a map DOM teardown can
  * warn about unmounting mid-render — deferring to a microtask avoids it. */
 function deferredUnmount(root: Root) {
   setTimeout(() => root.unmount(), 0);
 }
 
+/** Groups cruises by departure port and assigns each a small pixel offset so
+ * pins sharing a port fan out around it instead of stacking exactly. */
+function layoutPins(cruises: Cruise[]): Array<{ cruise: Cruise; offset: [number, number] }> {
+  const byPort = new Map<string, Cruise[]>();
+  for (const cruise of cruises) {
+    const group = byPort.get(cruise.departurePort);
+    if (group) group.push(cruise);
+    else byPort.set(cruise.departurePort, [cruise]);
+  }
+
+  const laid: Array<{ cruise: Cruise; offset: [number, number] }> = [];
+  for (const group of byPort.values()) {
+    group.forEach((cruise, i) => {
+      if (group.length === 1) {
+        laid.push({ cruise, offset: [0, 0] });
+        return;
+      }
+      const angle = (2 * Math.PI * i) / group.length;
+      laid.push({
+        cruise,
+        offset: [Math.round(Math.cos(angle) * PIN_SPREAD_RADIUS), Math.round(Math.sin(angle) * PIN_SPREAD_RADIUS)],
+      });
+    });
+  }
+  return laid;
+}
+
 export function CruiseMap() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const activePopupRef = useRef<mapboxgl.Popup | null>(null);
+  const mapRef = useRef<MaplibreMap | null>(null);
+  const activePopupRef = useRef<Popup | null>(null);
 
-  const { data: ports } = usePorts();
-  const viewCruisesForPort = useCruiseStore((state) => state.viewCruisesForPort);
-  const selectedPort = useCruiseStore((state) => state.selectedPort);
+  const filters = useCruiseStore((state) => state.filters);
+  const setSelectedCruise = useCruiseStore((state) => state.setSelectedCruise);
+  const { data: cruises } = useCruises(filters);
 
   useEffect(() => {
-    if (!MAPBOX_TOKEN || !containerRef.current || mapRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    const map = new mapboxgl.Map({
+    const map = new MaplibreMap({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: MAP_STYLE,
       center: [10, 25],
       zoom: 1.3,
       attributionControl: false,
     });
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new AttributionControl({ compact: true }));
     mapRef.current = map;
 
+    // The map's container can still be mid-layout (e.g. above sections
+    // finishing their entrance animation) when the map is constructed, which
+    // leaves MapLibre's internal viewport size stale. A ResizeObserver keeps
+    // it in sync whenever the container's actual size changes.
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(containerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       activePopupRef.current?.remove();
       map.remove();
       mapRef.current = null;
@@ -53,28 +126,36 @@ export function CruiseMap() {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ports || ports.length === 0) return;
+    if (!map || !cruises || cruises.length === 0) return;
 
-    const markers: mapboxgl.Marker[] = [];
+    const markers: Marker[] = [];
     const roots: Root[] = [];
 
-    function openPortPopup(port: CruisePort) {
+    function openCruisePopup(cruise: Cruise, offset: [number, number]) {
       activePopupRef.current?.remove();
 
       const popupNode = document.createElement("div");
       const popupRoot = createRoot(popupNode);
-      const popup = new mapboxgl.Popup({ offset: 32, maxWidth: "260px", closeButton: true })
-        .setLngLat(port.coordinates)
+      // closeOnClick: false — MapLibre's marker click also reaches the map's
+      // own click handling, which would otherwise close a popup the instant
+      // it opens (the marker click and the "click outside" close are the
+      // same event). We already close the previous popup explicitly above.
+      const popup = new Popup({
+        offset: [offset[0], offset[1] + 16],
+        maxWidth: "260px",
+        closeButton: true,
+        closeOnClick: false,
+      })
+        .setLngLat(cruise.departureCoordinates)
         .setDOMContent(popupNode)
         .addTo(map!);
 
       popupRoot.render(
-        <PortPopup
-          port={port}
-          onViewCruises={() => {
-            viewCruisesForPort(port);
+        <CruisePinPopup
+          cruise={cruise}
+          onViewDetails={() => {
+            setSelectedCruise(cruise);
             popup.remove();
-            document.getElementById("cruise-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />,
       );
@@ -83,21 +164,15 @@ export function CruiseMap() {
       activePopupRef.current = popup;
     }
 
-    ports.forEach((port) => {
+    layoutPins(cruises).forEach(({ cruise, offset }) => {
       const el = document.createElement("div");
       const root = createRoot(el);
       roots.push(root);
 
-      root.render(
-        <CruiseMarker
-          cruiseCount={port.cruiseCount}
-          isSelected={selectedPort?.id === port.id}
-          onClick={() => openPortPopup(port)}
-        />,
-      );
+      root.render(<CruisePin cruiseName={cruise.cruiseName} onClick={() => openCruisePopup(cruise, offset)} />);
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-        .setLngLat(port.coordinates)
+      const marker = new Marker({ element: el, anchor: "center", offset })
+        .setLngLat(cruise.departureCoordinates)
         .addTo(map);
       markers.push(marker);
     });
@@ -106,24 +181,7 @@ export function CruiseMap() {
       markers.forEach((marker) => marker.remove());
       roots.forEach(deferredUnmount);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ports, selectedPort?.id]);
-
-  if (!MAPBOX_TOKEN) {
-    return (
-      <div className="glass-card flex h-[420px] w-full flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border px-6 text-center">
-        <MapPinned className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-        <div>
-          <p className="font-semibold text-foreground">Interactive map unavailable</p>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            Add a Mapbox access token to <code className="rounded bg-muted px-1 py-0.5">.env.local</code>{" "}
-            as <code className="rounded bg-muted px-1 py-0.5">NEXT_PUBLIC_MAPBOX_TOKEN</code> to see
-            cruise departure ports on the map.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  }, [cruises, setSelectedCruise]);
 
   return (
     <div className="relative h-[420px] w-full overflow-hidden rounded-3xl border border-border shadow-lg sm:h-[480px]">

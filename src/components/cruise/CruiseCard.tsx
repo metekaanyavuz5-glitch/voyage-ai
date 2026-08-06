@@ -83,10 +83,8 @@ export function CruiseCard({ cruise }: CruiseCardProps) {
             </p>
           </div>
           <Button
-            onClick={(event) => {
-              event.stopPropagation();
-              setSelectedCruise(cruise);
-            }}
+            onClick={(event) => event.stopPropagation()}
+            render={<a href={cruise.bookingUrl} target="_blank" rel="noopener noreferrer" />}
             className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:from-blue-500 hover:to-indigo-500"
           >
             Book Now

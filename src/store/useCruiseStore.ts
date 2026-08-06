@@ -5,14 +5,10 @@ import {
   DEFAULT_SEARCH_PARAMS,
   type Cruise,
   type CruiseFilters,
-  type CruisePort,
   type CruiseSearchParams,
 } from "@/types/cruise";
 
 interface CruiseStore {
-  selectedPort: CruisePort | null;
-  setSelectedPort: (port: CruisePort | null) => void;
-
   filters: CruiseFilters;
   setFilters: (filters: Partial<CruiseFilters>) => void;
   clearFilters: () => void;
@@ -26,20 +22,14 @@ interface CruiseStore {
   favorites: string[];
   toggleFavorite: (cruiseId: string) => void;
   isFavorite: (cruiseId: string) => boolean;
-
-  /** Filters a marker's "View Cruises" action funnels into: sets both the map selection and the port filter. */
-  viewCruisesForPort: (port: CruisePort) => void;
 }
 
 export const useCruiseStore = create<CruiseStore>()(
   persist(
     (set, get) => ({
-      selectedPort: null,
-      setSelectedPort: (port) => set({ selectedPort: port }),
-
       filters: DEFAULT_FILTERS,
       setFilters: (filters) => set((state) => ({ filters: { ...state.filters, ...filters } })),
-      clearFilters: () => set({ filters: DEFAULT_FILTERS, selectedPort: null }),
+      clearFilters: () => set({ filters: DEFAULT_FILTERS }),
 
       searchParams: DEFAULT_SEARCH_PARAMS,
       setSearchParams: (params) =>
@@ -56,12 +46,6 @@ export const useCruiseStore = create<CruiseStore>()(
             : [...state.favorites, cruiseId],
         })),
       isFavorite: (cruiseId) => get().favorites.includes(cruiseId),
-
-      viewCruisesForPort: (port) =>
-        set((state) => ({
-          selectedPort: port,
-          filters: { ...state.filters, departurePort: port.name },
-        })),
     }),
     {
       name: "cruise-store",

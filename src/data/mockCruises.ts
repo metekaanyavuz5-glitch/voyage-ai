@@ -266,6 +266,23 @@ const SHIPS: Record<CruiseLine, string[]> = {
   ],
 };
 
+/**
+ * Real, official cruise-line website per line. There's no free source for
+ * real per-sailing booking links (that data lives behind paid inventory
+ * APIs), so "Book Now" sends guests to the actual cruise line's own site —
+ * a genuine, working destination to search and book with that line —
+ * rather than a fabricated deep link to a specific sailing that doesn't
+ * exist in any real reservation system.
+ */
+const CRUISE_LINE_WEBSITE: Record<CruiseLine, string> = {
+  "Royal Caribbean": "https://www.royalcaribbean.com",
+  "MSC Cruises": "https://www.msccruisesusa.com",
+  Carnival: "https://www.carnival.com",
+  "Norwegian Cruise Line": "https://www.ncl.com",
+  "Princess Cruises": "https://www.princess.com",
+  "Celebrity Cruises": "https://www.celebritycruises.com",
+};
+
 /** Baseline nightly rate per line (USD) — premium lines skew higher. */
 const BASE_NIGHTLY_RATE: Record<CruiseLine, number> = {
   Carnival: 95,
@@ -401,8 +418,7 @@ function generateCruises(): Cruise[] {
         rating,
         reviewCount,
         image: SHIP_IMAGES[(portIndex + lineIndex) % SHIP_IMAGES.length],
-        // TODO: replace with the real deep-link returned by the booking API.
-        bookingUrl: "#",
+        bookingUrl: CRUISE_LINE_WEBSITE[cruiseLine],
         amenities: pickAmenities(seedOffset + lineIndex * 3),
         itinerary: buildItinerary(profile.port, profile.callPorts, duration, seedOffset),
       });
